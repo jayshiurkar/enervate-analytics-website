@@ -39,6 +39,26 @@
         -moz-osx-font-smoothing: grayscale;
         text-rendering: geometricPrecision;
       }
+
+      .enervate-service-image-contain {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        object-position: center center !important;
+        background-color: #ffffff !important;
+      }
+
+      .enervate-service-image-frame {
+        background-color: #ffffff !important;
+        overflow: hidden !important;
+      }
+
+      .enervate-service-background-contain {
+        background-size: contain !important;
+        background-position: center center !important;
+        background-repeat: no-repeat !important;
+        background-color: #ffffff !important;
+      }
     </style>
     <script type="module" crossorigin src="/assets/index-D9o-qR2T.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D-V4WTKr.css">
@@ -50,6 +70,10 @@
       (function () {
         var brandName = "Enervate Analytics";
         var brandWords = ["Enervate", "Analytics"];
+        var serviceImageTitles = [
+          "Climate Risk and Adaptation Feasibility Study",
+          "Public Safety Site Risk Assessment and Land-Use Advisory"
+        ];
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -143,10 +167,73 @@
           });
         }
 
-        document.addEventListener("DOMContentLoaded", improveLogoVisibility);
-        window.addEventListener("load", improveLogoVisibility);
+        function findServiceCard(titleElement, title) {
+          var current = titleElement;
+          var steps = 0;
 
-        var observer = new MutationObserver(improveLogoVisibility);
+          while (current && current !== document.body && steps < 8) {
+            var text = normalizeText(current.textContent);
+            var hasTitle = text.indexOf(title) !== -1;
+            var hasImage = current.querySelector && current.querySelector("img, picture, svg, [style*='background-image']");
+
+            if (hasTitle && hasImage) return current;
+
+            current = current.parentElement;
+            steps += 1;
+          }
+
+          return null;
+        }
+
+        function forceImageContain(image) {
+          image.classList.add("enervate-service-image-contain");
+          image.style.setProperty("width", "100%", "important");
+          image.style.setProperty("height", "100%", "important");
+          image.style.setProperty("object-fit", "contain", "important");
+          image.style.setProperty("object-position", "center center", "important");
+          image.style.setProperty("background-color", "#ffffff", "important");
+
+          var parent = image.parentElement;
+          if (parent) {
+            parent.classList.add("enervate-service-image-frame");
+            parent.style.setProperty("background-color", "#ffffff", "important");
+            parent.style.setProperty("overflow", "hidden", "important");
+          }
+        }
+
+        function forceBackgroundContain(element) {
+          element.classList.add("enervate-service-background-contain");
+          element.style.setProperty("background-size", "contain", "important");
+          element.style.setProperty("background-position", "center center", "important");
+          element.style.setProperty("background-repeat", "no-repeat", "important");
+          element.style.setProperty("background-color", "#ffffff", "important");
+        }
+
+        function fixServiceImageCropping() {
+          var searchableElements = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a"));
+
+          serviceImageTitles.forEach(function (title) {
+            searchableElements.forEach(function (element) {
+              if (normalizeText(element.textContent) !== title) return;
+
+              var card = findServiceCard(element, title);
+              if (!card) return;
+
+              Array.prototype.slice.call(card.querySelectorAll("img")).forEach(forceImageContain);
+              Array.prototype.slice.call(card.querySelectorAll("[style*='background-image']")).forEach(forceBackgroundContain);
+            });
+          });
+        }
+
+        function applySiteFixes() {
+          improveLogoVisibility();
+          fixServiceImageCropping();
+        }
+
+        document.addEventListener("DOMContentLoaded", applySiteFixes);
+        window.addEventListener("load", applySiteFixes);
+
+        var observer = new MutationObserver(applySiteFixes);
         observer.observe(document.documentElement, { childList: true, subtree: true });
       })();
     </script>
