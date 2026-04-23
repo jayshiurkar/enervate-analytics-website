@@ -12,11 +12,62 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="/assets/enervate-logo.png" />
+    <style id="enervate-logo-visibility-override">
+      .enervate-brand-text-contrast {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        opacity: 1 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 1px rgba(0, 0, 0, 0.85) !important;
+        -webkit-text-stroke: 0.25px rgba(0, 0, 0, 0.6);
+      }
+
+      .enervate-logo-contrast {
+        filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.85)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) !important;
+      }
+    </style>
     <script type="module" crossorigin src="/assets/index-D9o-qR2T.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D-V4WTKr.css">
   </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var brandName = "Enervate Analytics";
+
+        function normalizeText(value) {
+          return (value || "").replace(/\s+/g, " ").trim();
+        }
+
+        function improveLogoVisibility() {
+          var containers = Array.prototype.slice.call(document.querySelectorAll("header, nav"));
+          if (!containers.length) return;
+
+          containers.forEach(function (container) {
+            var textElements = Array.prototype.slice.call(container.querySelectorAll("a, span, div, p, strong, h1, h2, h3"));
+            textElements.forEach(function (element) {
+              if (normalizeText(element.textContent) === brandName) {
+                element.classList.add("enervate-brand-text-contrast");
+              }
+            });
+
+            var logoImages = Array.prototype.slice.call(container.querySelectorAll('img[src*="enervate-logo"]'));
+            logoImages.forEach(function (image) {
+              image.classList.add("enervate-logo-contrast");
+              var brandLink = image.closest("a");
+              if (brandLink && normalizeText(brandLink.textContent).indexOf(brandName) !== -1) {
+                brandLink.classList.add("enervate-brand-text-contrast");
+              }
+            });
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", improveLogoVisibility);
+        window.addEventListener("load", improveLogoVisibility);
+
+        var observer = new MutationObserver(improveLogoVisibility);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      })();
+    </script>
   </body>
 </html>
