@@ -26,6 +26,19 @@
         -moz-osx-font-smoothing: grayscale;
         text-rendering: geometricPrecision;
       }
+
+      .enervate-brand-word-match {
+        color: #ffffff !important;
+        fill: #ffffff !important;
+        opacity: 1 !important;
+        text-shadow: none !important;
+        -webkit-text-stroke: 0 !important;
+        filter: none !important;
+        font-weight: 700 !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: geometricPrecision;
+      }
     </style>
     <script type="module" crossorigin src="/assets/index-D9o-qR2T.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D-V4WTKr.css">
@@ -36,6 +49,7 @@
     <script>
       (function () {
         var brandName = "Enervate Analytics";
+        var brandWords = ["Enervate", "Analytics"];
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -49,6 +63,40 @@
           element.style.setProperty("-webkit-text-stroke", "0", "important");
           element.style.setProperty("filter", "none", "important");
           element.style.setProperty("font-weight", "700", "important");
+          element.style.setProperty("-webkit-font-smoothing", "antialiased");
+          element.style.setProperty("-moz-osx-font-smoothing", "grayscale");
+          element.style.setProperty("text-rendering", "geometricPrecision");
+        }
+
+        function forceBrandWordStyle(element) {
+          element.classList.add("enervate-brand-word-match");
+          forceSharpWhiteBrandText(element);
+        }
+
+        function copyReadableBrandStyle(source, target) {
+          if (!source || !target) return;
+
+          var style = window.getComputedStyle(source);
+          [
+            "font-family",
+            "font-size",
+            "font-style",
+            "font-weight",
+            "line-height",
+            "letter-spacing",
+            "text-transform"
+          ].forEach(function (property) {
+            target.style.setProperty(property, style.getPropertyValue(property), "important");
+          });
+
+          target.style.setProperty("color", "#ffffff", "important");
+          target.style.setProperty("opacity", "1", "important");
+          target.style.setProperty("text-shadow", "none", "important");
+          target.style.setProperty("-webkit-text-stroke", "0", "important");
+          target.style.setProperty("filter", "none", "important");
+          target.style.setProperty("-webkit-font-smoothing", "antialiased");
+          target.style.setProperty("-moz-osx-font-smoothing", "grayscale");
+          target.style.setProperty("text-rendering", "geometricPrecision");
         }
 
         function improveLogoVisibility() {
@@ -57,8 +105,12 @@
 
           containers.forEach(function (container) {
             var textElements = Array.prototype.slice.call(container.querySelectorAll("a, span, div, p, strong, h1, h2, h3"));
+            var enervateElements = [];
+            var analyticsElements = [];
+
             textElements.forEach(function (element) {
               var text = normalizeText(element.textContent);
+
               if (text === brandName || (text.indexOf(brandName) !== -1 && text.length <= brandName.length + 10)) {
                 forceSharpWhiteBrandText(element);
 
@@ -66,6 +118,27 @@
                   forceSharpWhiteBrandText(child);
                 });
               }
+
+              if (brandWords.indexOf(text) !== -1) {
+                forceBrandWordStyle(element);
+              }
+
+              if (text === "Enervate") enervateElements.push(element);
+              if (text === "Analytics") analyticsElements.push(element);
+            });
+
+            analyticsElements.forEach(function (analyticsElement) {
+              var closestEnervate = enervateElements[0];
+
+              if (enervateElements.length > 1) {
+                closestEnervate = enervateElements.reduce(function (best, candidate) {
+                  var bestDistance = Math.abs(best.getBoundingClientRect().top - analyticsElement.getBoundingClientRect().top);
+                  var candidateDistance = Math.abs(candidate.getBoundingClientRect().top - analyticsElement.getBoundingClientRect().top);
+                  return candidateDistance < bestDistance ? candidate : best;
+                }, enervateElements[0]);
+              }
+
+              copyReadableBrandStyle(closestEnervate, analyticsElement);
             });
           });
         }
