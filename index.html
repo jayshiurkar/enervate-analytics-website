@@ -59,6 +59,13 @@
         background-repeat: no-repeat !important;
         background-color: #ffffff !important;
       }
+
+      .enervate-hide-publication-content {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
     </style>
     <script type="module" crossorigin src="/assets/index-D9o-qR2T.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D-V4WTKr.css">
@@ -77,6 +84,10 @@
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
+        }
+
+        function normalizeLower(value) {
+          return normalizeText(value).toLowerCase();
         }
 
         function forceSharpWhiteBrandText(element) {
@@ -225,9 +236,59 @@
           });
         }
 
+        function hideNode(element) {
+          if (!element || element === document.body || element === document.documentElement) return;
+          element.classList.add("enervate-hide-publication-content");
+          element.style.setProperty("display", "none", "important");
+          element.style.setProperty("visibility", "hidden", "important");
+        }
+
+        function findPublicationBlock(element) {
+          var section = element.closest && element.closest("section");
+          if (section && normalizeLower(section.textContent).indexOf("peer-reviewed research") !== -1) return section;
+
+          var current = element;
+          var steps = 0;
+
+          while (current && current !== document.body && steps < 8) {
+            var text = normalizeLower(current.textContent);
+            var hasPeerHeading = text.indexOf("peer-reviewed research") !== -1 || text.indexOf("peer reviewed research") !== -1;
+            var hasPublicationAction = text.indexOf("view publications") !== -1 || text.indexOf("view our publications") !== -1;
+
+            if (hasPeerHeading && hasPublicationAction) return current;
+
+            current = current.parentElement;
+            steps += 1;
+          }
+
+          return element.closest && element.closest("article, div, li, a, button");
+        }
+
+        function hidePublicationContent() {
+          Array.prototype.slice.call(document.querySelectorAll('a[href*="scholar.google"]')).forEach(function (link) {
+            hideNode(link.closest("a, button") || link);
+          });
+
+          Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a, button")).forEach(function (element) {
+            var text = normalizeLower(element.textContent);
+            if (!text) return;
+
+            if (text === "view publications" || text === "view our publications") {
+              hideNode(element.closest("a, button") || element);
+              return;
+            }
+
+            if (text.indexOf("peer-reviewed research") !== -1 || text.indexOf("peer reviewed research") !== -1) {
+              hideNode(findPublicationBlock(element));
+              return;
+            }
+          });
+        }
+
         function applySiteFixes() {
           improveLogoVisibility();
           fixServiceImageCropping();
+          hidePublicationContent();
         }
 
         document.addEventListener("DOMContentLoaded", applySiteFixes);
