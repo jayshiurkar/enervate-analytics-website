@@ -238,49 +238,45 @@
 
         function hideNode(element) {
           if (!element || element === document.body || element === document.documentElement) return;
+          if (element.id === "root") return;
           element.classList.add("enervate-hide-publication-content");
           element.style.setProperty("display", "none", "important");
           element.style.setProperty("visibility", "hidden", "important");
         }
 
-        function findPublicationBlock(element) {
-          var section = element.closest && element.closest("section");
-          if (section && normalizeLower(section.textContent).indexOf("peer-reviewed research") !== -1) return section;
-
-          var current = element;
-          var steps = 0;
-
-          while (current && current !== document.body && steps < 8) {
-            var text = normalizeLower(current.textContent);
-            var hasPeerHeading = text.indexOf("peer-reviewed research") !== -1 || text.indexOf("peer reviewed research") !== -1;
-            var hasPublicationAction = text.indexOf("view publications") !== -1 || text.indexOf("view our publications") !== -1;
-
-            if (hasPeerHeading && hasPublicationAction) return current;
-
-            current = current.parentElement;
-            steps += 1;
+        function hidePublicationSectionFromHeading(heading) {
+          var section = heading.closest && heading.closest("section");
+          if (section && section.id !== "root") {
+            hideNode(section);
+            return;
           }
 
-          return element.closest && element.closest("article, div, li, a, button");
+          var block = heading.closest && heading.closest("article, div");
+          if (block && block.id !== "root" && block !== document.body) {
+            hideNode(block);
+          } else {
+            hideNode(heading);
+          }
         }
 
         function hidePublicationContent() {
           Array.prototype.slice.call(document.querySelectorAll('a[href*="scholar.google"]')).forEach(function (link) {
-            hideNode(link.closest("a, button") || link);
+            hideNode(link);
           });
 
-          Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a, button")).forEach(function (element) {
+          Array.prototype.slice.call(document.querySelectorAll("a, button")).forEach(function (element) {
             var text = normalizeLower(element.textContent);
-            if (!text) return;
+            var href = normalizeLower(element.getAttribute("href") || "");
 
-            if (text === "view publications" || text === "view our publications") {
-              hideNode(element.closest("a, button") || element);
-              return;
+            if (text === "view publications" || text === "view our publications" || href.indexOf("scholar.google") !== -1) {
+              hideNode(element);
             }
+          });
 
-            if (text.indexOf("peer-reviewed research") !== -1 || text.indexOf("peer reviewed research") !== -1) {
-              hideNode(findPublicationBlock(element));
-              return;
+          Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6")).forEach(function (heading) {
+            var text = normalizeLower(heading.textContent);
+            if (text === "peer-reviewed research" || text === "peer reviewed research") {
+              hidePublicationSectionFromHeading(heading);
             }
           });
         }
@@ -291,11 +287,13 @@
           hidePublicationContent();
         }
 
-        document.addEventListener("DOMContentLoaded", applySiteFixes);
+        document.addEventListener("DOMContentLoaded", function () {
+          applySiteFixes();
+          setTimeout(applySiteFixes, 300);
+          setTimeout(applySiteFixes, 1000);
+          setTimeout(applySiteFixes, 2000);
+        });
         window.addEventListener("load", applySiteFixes);
-
-        var observer = new MutationObserver(applySiteFixes);
-        observer.observe(document.documentElement, { childList: true, subtree: true });
       })();
     </script>
   </body>
