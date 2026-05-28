@@ -56,6 +56,45 @@
         opacity: 0 !important;
         pointer-events: none !important;
       }
+
+      .enervate-contact-email-block {
+        display: flex !important;
+        align-items: center !important;
+        gap: 1rem !important;
+        margin-top: 1.25rem !important;
+        margin-bottom: 1.25rem !important;
+      }
+
+      .enervate-contact-email-icon {
+        width: 60px !important;
+        height: 60px !important;
+        min-width: 60px !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(80, 130, 190, 0.45) !important;
+        background: rgba(30, 45, 65, 0.75) !important;
+        color: #6ea8ff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+      }
+
+      .enervate-contact-email-label {
+        color: rgba(255, 255, 255, 0.65) !important;
+        font-size: 0.9rem !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        margin-bottom: 0.25rem !important;
+      }
+
+      .enervate-contact-email-link {
+        color: #ffffff !important;
+        font-size: 1.05rem !important;
+        line-height: 1.4 !important;
+        text-decoration: none !important;
+        word-break: break-word !important;
+      }
     </style>
     <script type="module" crossorigin src="/assets/index-D9o-qR2T.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D-V4WTKr.css">
@@ -67,6 +106,7 @@
       (function () {
         var brandName = "Enervate Analytics";
         var brandWords = ["Enervate", "Analytics"];
+        var contactEmail = "services@enervateanalytics.ca";
         var serviceImageTitles = [
           "Climate Risk and Adaptation Feasibility Study",
           "Public Safety Site Risk Assessment and Land-Use Advisory"
@@ -261,10 +301,73 @@
           }
         }
 
+        function createEmailBlock() {
+          var wrapper = document.createElement("div");
+          wrapper.id = "enervate-contact-email-block";
+          wrapper.className = "enervate-contact-email-block";
+
+          var icon = document.createElement("div");
+          icon.className = "enervate-contact-email-icon";
+          icon.textContent = "@";
+
+          var content = document.createElement("div");
+          var label = document.createElement("div");
+          label.className = "enervate-contact-email-label";
+          label.textContent = "Email";
+
+          var link = document.createElement("a");
+          link.className = "enervate-contact-email-link";
+          link.href = "mailto:" + contactEmail;
+          link.textContent = contactEmail;
+
+          content.appendChild(label);
+          content.appendChild(link);
+          wrapper.appendChild(icon);
+          wrapper.appendChild(content);
+          return wrapper;
+        }
+
+        function findContactPageContainer() {
+          var headings = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3"));
+          for (var i = 0; i < headings.length; i += 1) {
+            var text = normalizeLower(headings[i].textContent);
+            if (text.indexOf("let's discuss") !== -1 || text.indexOf("contact us") !== -1 || text === "contact") {
+              return headings[i].closest("section") || headings[i].closest("div") || headings[i].parentElement;
+            }
+          }
+          return null;
+        }
+
+        function addContactEmail() {
+          if (document.getElementById("enervate-contact-email-block")) return;
+
+          var contactContainer = findContactPageContainer();
+          if (!contactContainer) return;
+
+          var emailBlock = createEmailBlock();
+          var phoneReference = null;
+          Array.prototype.slice.call(contactContainer.querySelectorAll("a, button, p, span, li, div")).some(function (element) {
+            var text = normalizeText(element.textContent);
+            var href = normalizeText(element.getAttribute && element.getAttribute("href") || "");
+            if (phoneRegex.test(text) || phoneRegex.test(href) || normalizeLower(text) === "phone") {
+              phoneReference = findSmallPhoneBlock(element);
+              return true;
+            }
+            return false;
+          });
+
+          if (phoneReference && phoneReference.parentElement) {
+            phoneReference.parentElement.insertBefore(emailBlock, phoneReference);
+          } else {
+            contactContainer.appendChild(emailBlock);
+          }
+        }
+
         function applySiteFixes() {
           improveLogoVisibility();
           fixServiceImageCropping();
           hidePublicationContent();
+          addContactEmail();
           hidePhoneContent();
         }
 
