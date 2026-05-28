@@ -12,22 +12,9 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="/assets/enervate-logo.png" />
-    <style id="enervate-logo-visibility-override">
+    <style id="enervate-site-overrides">
       .enervate-brand-text-contrast,
       .enervate-brand-text-contrast * {
-        color: #ffffff !important;
-        fill: #ffffff !important;
-        opacity: 1 !important;
-        text-shadow: none !important;
-        -webkit-text-stroke: 0 !important;
-        filter: none !important;
-        font-weight: 700 !important;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: geometricPrecision;
-      }
-
-      .enervate-brand-word-match {
         color: #ffffff !important;
         fill: #ffffff !important;
         opacity: 1 !important;
@@ -60,7 +47,7 @@
         background-color: #ffffff !important;
       }
 
-      .enervate-hide-publication-content {
+      .enervate-hide-content {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -81,6 +68,7 @@
           "Climate Risk and Adaptation Feasibility Study",
           "Public Safety Site Risk Assessment and Land-Use Advisory"
         ];
+        var phoneRegex = /(\+?1[\s\-.()]*)?\(?780\)?[\s\-.()]*885[\s\-.()]*4862/;
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -88,6 +76,13 @@
 
         function normalizeLower(value) {
           return normalizeText(value).toLowerCase();
+        }
+
+        function hideNode(element) {
+          if (!element || element === document.body || element === document.documentElement || element.id === "root") return;
+          element.classList.add("enervate-hide-content");
+          element.style.setProperty("display", "none", "important");
+          element.style.setProperty("visibility", "hidden", "important");
         }
 
         function forceSharpWhiteBrandText(element) {
@@ -103,97 +98,34 @@
           element.style.setProperty("text-rendering", "geometricPrecision");
         }
 
-        function forceBrandWordStyle(element) {
-          element.classList.add("enervate-brand-word-match");
-          forceSharpWhiteBrandText(element);
-        }
-
         function copyReadableBrandStyle(source, target) {
           if (!source || !target) return;
-
           var style = window.getComputedStyle(source);
-          [
-            "font-family",
-            "font-size",
-            "font-style",
-            "font-weight",
-            "line-height",
-            "letter-spacing",
-            "text-transform"
-          ].forEach(function (property) {
+          ["font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "text-transform"].forEach(function (property) {
             target.style.setProperty(property, style.getPropertyValue(property), "important");
           });
-
-          target.style.setProperty("color", "#ffffff", "important");
-          target.style.setProperty("opacity", "1", "important");
-          target.style.setProperty("text-shadow", "none", "important");
-          target.style.setProperty("-webkit-text-stroke", "0", "important");
-          target.style.setProperty("filter", "none", "important");
-          target.style.setProperty("-webkit-font-smoothing", "antialiased");
-          target.style.setProperty("-moz-osx-font-smoothing", "grayscale");
-          target.style.setProperty("text-rendering", "geometricPrecision");
+          forceSharpWhiteBrandText(target);
         }
 
         function improveLogoVisibility() {
-          var containers = Array.prototype.slice.call(document.querySelectorAll("header, nav"));
-          if (!containers.length) return;
-
-          containers.forEach(function (container) {
+          Array.prototype.slice.call(document.querySelectorAll("header, nav")).forEach(function (container) {
             var textElements = Array.prototype.slice.call(container.querySelectorAll("a, span, div, p, strong, h1, h2, h3"));
             var enervateElements = [];
             var analyticsElements = [];
 
             textElements.forEach(function (element) {
               var text = normalizeText(element.textContent);
-
-              if (text === brandName || (text.indexOf(brandName) !== -1 && text.length <= brandName.length + 10)) {
+              if (text === brandName || (text.indexOf(brandName) !== -1 && text.length <= brandName.length + 10) || brandWords.indexOf(text) !== -1) {
                 forceSharpWhiteBrandText(element);
-
-                Array.prototype.slice.call(element.querySelectorAll("span, strong, p, div, h1, h2, h3")).forEach(function (child) {
-                  forceSharpWhiteBrandText(child);
-                });
               }
-
-              if (brandWords.indexOf(text) !== -1) {
-                forceBrandWordStyle(element);
-              }
-
               if (text === "Enervate") enervateElements.push(element);
               if (text === "Analytics") analyticsElements.push(element);
             });
 
             analyticsElements.forEach(function (analyticsElement) {
-              var closestEnervate = enervateElements[0];
-
-              if (enervateElements.length > 1) {
-                closestEnervate = enervateElements.reduce(function (best, candidate) {
-                  var bestDistance = Math.abs(best.getBoundingClientRect().top - analyticsElement.getBoundingClientRect().top);
-                  var candidateDistance = Math.abs(candidate.getBoundingClientRect().top - analyticsElement.getBoundingClientRect().top);
-                  return candidateDistance < bestDistance ? candidate : best;
-                }, enervateElements[0]);
-              }
-
-              copyReadableBrandStyle(closestEnervate, analyticsElement);
+              copyReadableBrandStyle(enervateElements[0], analyticsElement);
             });
           });
-        }
-
-        function findServiceCard(titleElement, title) {
-          var current = titleElement;
-          var steps = 0;
-
-          while (current && current !== document.body && steps < 8) {
-            var text = normalizeText(current.textContent);
-            var hasTitle = text.indexOf(title) !== -1;
-            var hasImage = current.querySelector && current.querySelector("img, picture, svg, [style*='background-image']");
-
-            if (hasTitle && hasImage) return current;
-
-            current = current.parentElement;
-            steps += 1;
-          }
-
-          return null;
         }
 
         function forceImageContain(image) {
@@ -203,12 +135,10 @@
           image.style.setProperty("object-fit", "contain", "important");
           image.style.setProperty("object-position", "center center", "important");
           image.style.setProperty("background-color", "#ffffff", "important");
-
-          var parent = image.parentElement;
-          if (parent) {
-            parent.classList.add("enervate-service-image-frame");
-            parent.style.setProperty("background-color", "#ffffff", "important");
-            parent.style.setProperty("overflow", "hidden", "important");
+          if (image.parentElement) {
+            image.parentElement.classList.add("enervate-service-image-frame");
+            image.parentElement.style.setProperty("background-color", "#ffffff", "important");
+            image.parentElement.style.setProperty("overflow", "hidden", "important");
           }
         }
 
@@ -220,64 +150,59 @@
           element.style.setProperty("background-color", "#ffffff", "important");
         }
 
+        function findServiceCard(titleElement, title) {
+          var current = titleElement;
+          var steps = 0;
+          while (current && current !== document.body && steps < 8) {
+            if (normalizeText(current.textContent).indexOf(title) !== -1 && current.querySelector && current.querySelector("img, picture, svg, [style*='background-image']")) return current;
+            current = current.parentElement;
+            steps += 1;
+          }
+          return null;
+        }
+
         function fixServiceImageCropping() {
           var searchableElements = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a"));
-
           serviceImageTitles.forEach(function (title) {
             searchableElements.forEach(function (element) {
               if (normalizeText(element.textContent) !== title) return;
-
               var card = findServiceCard(element, title);
               if (!card) return;
-
               Array.prototype.slice.call(card.querySelectorAll("img")).forEach(forceImageContain);
               Array.prototype.slice.call(card.querySelectorAll("[style*='background-image']")).forEach(forceBackgroundContain);
             });
           });
         }
 
-        function hideNode(element) {
-          if (!element || element === document.body || element === document.documentElement) return;
-          if (element.id === "root") return;
-          element.classList.add("enervate-hide-publication-content");
-          element.style.setProperty("display", "none", "important");
-          element.style.setProperty("visibility", "hidden", "important");
-        }
-
-        function hidePublicationSectionFromHeading(heading) {
-          var section = heading.closest && heading.closest("section");
-          if (section && section.id !== "root") {
-            hideNode(section);
-            return;
-          }
-
-          var block = heading.closest && heading.closest("article, div");
-          if (block && block.id !== "root" && block !== document.body) {
-            hideNode(block);
-          } else {
-            hideNode(heading);
-          }
-        }
-
         function hidePublicationContent() {
-          Array.prototype.slice.call(document.querySelectorAll('a[href*="scholar.google"]')).forEach(function (link) {
-            hideNode(link);
-          });
+          Array.prototype.slice.call(document.querySelectorAll('a[href*="scholar.google"]')).forEach(hideNode);
 
           Array.prototype.slice.call(document.querySelectorAll("a, button")).forEach(function (element) {
             var text = normalizeLower(element.textContent);
             var href = normalizeLower(element.getAttribute("href") || "");
-
-            if (text === "view publications" || text === "view our publications" || href.indexOf("scholar.google") !== -1) {
-              hideNode(element);
-            }
+            if (text === "view publications" || text === "view our publications" || href.indexOf("scholar.google") !== -1) hideNode(element);
           });
 
           Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6")).forEach(function (heading) {
             var text = normalizeLower(heading.textContent);
             if (text === "peer-reviewed research" || text === "peer reviewed research") {
-              hidePublicationSectionFromHeading(heading);
+              var section = heading.closest && heading.closest("section");
+              hideNode(section || heading.closest("article, div") || heading);
             }
+          });
+        }
+
+        function hidePhoneContent() {
+          Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"]')).forEach(hideNode);
+
+          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li")).forEach(function (element) {
+            var text = normalizeText(element.textContent);
+            var href = normalizeText(element.getAttribute && element.getAttribute("href") || "");
+            if (!phoneRegex.test(text) && !phoneRegex.test(href)) return;
+
+            if (element.querySelector && element.querySelector("p, span, div, li, a, button") && text.length > 80) return;
+
+            hideNode(element.closest("a, button, p, li") || element);
           });
         }
 
@@ -285,6 +210,7 @@
           improveLogoVisibility();
           fixServiceImageCropping();
           hidePublicationContent();
+          hidePhoneContent();
         }
 
         document.addEventListener("DOMContentLoaded", function () {
