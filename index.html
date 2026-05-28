@@ -192,18 +192,71 @@
           });
         }
 
-        function hidePhoneContent() {
-          Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"]')).forEach(hideNode);
+        function closestSafePhoneBlock(element) {
+          var current = element;
+          var best = element;
+          var steps = 0;
 
-          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li")).forEach(function (element) {
+          while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
+            var parent = current.parentElement;
+            var parentText = normalizeText(parent.textContent);
+            if (!phoneRegex.test(parentText)) break;
+            if (parentText.length > 240) break;
+            best = parent;
+            current = parent;
+            steps += 1;
+          }
+
+          return best;
+        }
+
+        function removePhoneNumberText() {
+          if (!document.body || !window.NodeFilter) return;
+          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          var textNodes = [];
+          var node;
+
+          while ((node = walker.nextNode())) {
+            if (phoneRegex.test(node.nodeValue || "")) textNodes.push(node);
+          }
+
+          textNodes.forEach(function (textNode) {
+            textNode.nodeValue = (textNode.nodeValue || "").replace(phoneRegex, "").replace(/\s{2,}/g, " ").trim();
+          });
+        }
+
+        function hidePhoneContent() {
+          Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"]')).forEach(function (link) {
+            hideNode(closestSafePhoneBlock(link));
+          });
+
+          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li" )).forEach(function (element) {
             var text = normalizeText(element.textContent);
             var href = normalizeText(element.getAttribute && element.getAttribute("href") || "");
             if (!phoneRegex.test(text) && !phoneRegex.test(href)) return;
+            if (element.id === "root" || element === document.body) return;
+            if (text.length > 240 && element.querySelector && element.querySelector("section, main, article")) return;
 
-            if (element.querySelector && element.querySelector("p, span, div, li, a, button") && text.length > 80) return;
-
-            hideNode(element.closest("a, button, p, li") || element);
+            hideNode(closestSafePhoneBlock(element.closest("a, button, p, li, div") || element));
           });
+
+          Array.prototype.slice.call(document.querySelectorAll("p, span, div, li, h1, h2, h3, h4, h5, h6")).forEach(function (element) {
+            var text = normalizeLower(element.textContent);
+            if (text === "phone" || text === "phone:") {
+              var current = element;
+              var steps = 0;
+              while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
+                current = current.parentElement;
+                if (phoneRegex.test(normalizeText(current.textContent)) && normalizeText(current.textContent).length < 240) {
+                  hideNode(current);
+                  break;
+                }
+                steps += 1;
+              }
+            }
+          });
+
+          removePhoneNumberText();
         }
 
         function applySiteFixes() {
