@@ -72,7 +72,6 @@
           "Public Safety Site Risk Assessment and Land-Use Advisory"
         ];
         var phoneRegex = /(?:\+?\s*1\D*)?780\D*885\D*4862/;
-        var cleanupTimer = null;
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -198,16 +197,17 @@
           });
         }
 
-        function closestSafePhoneBlock(element) {
+        function findSmallPhoneBlock(element) {
           var current = element;
           var best = element;
           var steps = 0;
 
-          while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 7) {
+          while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
             var parent = current.parentElement;
-            var parentText = normalizeText(parent.textContent);
-            if (!phoneRegex.test(parentText) && normalizeLower(parentText).indexOf("phone") === -1) break;
-            if (parentText.length > 320) break;
+            var text = normalizeText(parent.textContent);
+            var lower = text.toLowerCase();
+            if (!phoneRegex.test(text) && lower.indexOf("phone") === -1) break;
+            if (text.length > 170) break;
             best = parent;
             current = parent;
             steps += 1;
@@ -216,61 +216,49 @@
           return best;
         }
 
-        function hidePhoneRowFromNumberElement(element) {
-          var phoneBlock = closestSafePhoneBlock(element);
-          hideNode(phoneBlock);
-        }
-
-        function removePhoneNumberText() {
-          if (!document.body || !window.NodeFilter) return;
-          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-          var textNodes = [];
-          var node;
-
-          while ((node = walker.nextNode())) {
-            if (phoneRegex.test(node.nodeValue || "")) textNodes.push(node);
-          }
-
-          textNodes.forEach(function (textNode) {
-            var parent = textNode.parentElement;
-            if (parent) hidePhoneRowFromNumberElement(parent);
-            textNode.nodeValue = (textNode.nodeValue || "").replace(phoneRegex, "").replace(/\s{2,}/g, " ").trim();
-          });
-        }
-
         function hidePhoneContent() {
           Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"], a[href*="780-885-4862"], a[href*="7808854862"]')).forEach(function (link) {
-            hidePhoneRowFromNumberElement(link);
+            hideNode(findSmallPhoneBlock(link));
           });
 
-          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li, section, footer" )).forEach(function (element) {
+          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, li, div")).forEach(function (element) {
             var text = normalizeText(element.textContent);
             var href = normalizeText(element.getAttribute && element.getAttribute("href") || "");
             if (!phoneRegex.test(text) && !phoneRegex.test(href)) return;
             if (element.id === "root" || element === document.body) return;
-            if (text.length > 320 && element.querySelector && element.querySelector("main, section, article, footer")) return;
+            if (text.length > 170) return;
 
-            hidePhoneRowFromNumberElement(element);
+            hideNode(findSmallPhoneBlock(element));
           });
 
-          Array.prototype.slice.call(document.querySelectorAll("p, span, div, li, h1, h2, h3, h4, h5, h6" )).forEach(function (element) {
+          Array.prototype.slice.call(document.querySelectorAll("p, span, div, li, h1, h2, h3, h4, h5, h6")).forEach(function (element) {
             var text = normalizeLower(element.textContent);
-            if (text === "phone" || text === "phone:") {
-              var current = element;
-              var steps = 0;
-              while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 7) {
-                current = current.parentElement;
-                var currentText = normalizeText(current.textContent);
-                if (phoneRegex.test(currentText) && currentText.length < 320) {
-                  hideNode(current);
-                  break;
-                }
-                steps += 1;
+            if (text !== "phone" && text !== "phone:") return;
+
+            var current = element;
+            var steps = 0;
+            while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
+              current = current.parentElement;
+              var currentText = normalizeText(current.textContent);
+              if (phoneRegex.test(currentText) && currentText.length < 170) {
+                hideNode(current);
+                break;
               }
+              steps += 1;
             }
           });
 
-          removePhoneNumberText();
+          if (document.body && window.NodeFilter) {
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            var node;
+            while ((node = walker.nextNode())) {
+              if (phoneRegex.test(node.nodeValue || "")) {
+                var parent = node.parentElement;
+                if (parent && normalizeText(parent.textContent).length < 170) hideNode(findSmallPhoneBlock(parent));
+                node.nodeValue = (node.nodeValue || "").replace(phoneRegex, "").replace(/\s{2,}/g, " ").trim();
+              }
+            }
+          }
         }
 
         function applySiteFixes() {
@@ -280,27 +268,17 @@
           hidePhoneContent();
         }
 
-        function scheduleCleanup() {
-          if (cleanupTimer) window.clearTimeout(cleanupTimer);
-          cleanupTimer = window.setTimeout(applySiteFixes, 80);
-        }
-
         document.addEventListener("DOMContentLoaded", function () {
           applySiteFixes();
           setTimeout(applySiteFixes, 300);
           setTimeout(applySiteFixes, 1000);
           setTimeout(applySiteFixes, 2000);
           setTimeout(applySiteFixes, 4000);
-
-          if (window.MutationObserver) {
-            var observer = new MutationObserver(scheduleCleanup);
-            observer.observe(document.getElementById("root") || document.body, { childList: true, subtree: true });
-          }
         });
         window.addEventListener("load", applySiteFixes);
-        window.addEventListener("hashchange", applySiteFixes);
-        window.addEventListener("popstate", applySiteFixes);
-        document.addEventListener("click", function () { setTimeout(applySiteFixes, 150); });
+        window.addEventListener("hashchange", function () { setTimeout(applySiteFixes, 300); });
+        window.addEventListener("popstate", function () { setTimeout(applySiteFixes, 300); });
+        document.addEventListener("click", function () { setTimeout(applySiteFixes, 500); });
       })();
     </script>
   </body>
