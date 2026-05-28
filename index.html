@@ -47,7 +47,10 @@
         background-color: #ffffff !important;
       }
 
-      .enervate-hide-content {
+      .enervate-hide-content,
+      a[href^="tel:"],
+      a[href*="780-885-4862"],
+      a[href*="7808854862"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -68,7 +71,8 @@
           "Climate Risk and Adaptation Feasibility Study",
           "Public Safety Site Risk Assessment and Land-Use Advisory"
         ];
-        var phoneRegex = /(\+?1[\s\-.()]*)?\(?780\)?[\s\-.()]*885[\s\-.()]*4862/;
+        var phoneRegex = /(?:\+?\s*1\D*)?780\D*885\D*4862/;
+        var cleanupTimer = null;
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -83,6 +87,8 @@
           element.classList.add("enervate-hide-content");
           element.style.setProperty("display", "none", "important");
           element.style.setProperty("visibility", "hidden", "important");
+          element.style.setProperty("opacity", "0", "important");
+          element.style.setProperty("pointer-events", "none", "important");
         }
 
         function forceSharpWhiteBrandText(element) {
@@ -197,17 +203,22 @@
           var best = element;
           var steps = 0;
 
-          while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
+          while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 7) {
             var parent = current.parentElement;
             var parentText = normalizeText(parent.textContent);
-            if (!phoneRegex.test(parentText)) break;
-            if (parentText.length > 240) break;
+            if (!phoneRegex.test(parentText) && normalizeLower(parentText).indexOf("phone") === -1) break;
+            if (parentText.length > 320) break;
             best = parent;
             current = parent;
             steps += 1;
           }
 
           return best;
+        }
+
+        function hidePhoneRowFromNumberElement(element) {
+          var phoneBlock = closestSafePhoneBlock(element);
+          hideNode(phoneBlock);
         }
 
         function removePhoneNumberText() {
@@ -221,33 +232,36 @@
           }
 
           textNodes.forEach(function (textNode) {
+            var parent = textNode.parentElement;
+            if (parent) hidePhoneRowFromNumberElement(parent);
             textNode.nodeValue = (textNode.nodeValue || "").replace(phoneRegex, "").replace(/\s{2,}/g, " ").trim();
           });
         }
 
         function hidePhoneContent() {
-          Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"]')).forEach(function (link) {
-            hideNode(closestSafePhoneBlock(link));
+          Array.prototype.slice.call(document.querySelectorAll('a[href^="tel:"], a[href*="780-885-4862"], a[href*="7808854862"]')).forEach(function (link) {
+            hidePhoneRowFromNumberElement(link);
           });
 
-          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li" )).forEach(function (element) {
+          Array.prototype.slice.call(document.querySelectorAll("a, button, p, span, div, li, section, footer" )).forEach(function (element) {
             var text = normalizeText(element.textContent);
             var href = normalizeText(element.getAttribute && element.getAttribute("href") || "");
             if (!phoneRegex.test(text) && !phoneRegex.test(href)) return;
             if (element.id === "root" || element === document.body) return;
-            if (text.length > 240 && element.querySelector && element.querySelector("section, main, article")) return;
+            if (text.length > 320 && element.querySelector && element.querySelector("main, section, article, footer")) return;
 
-            hideNode(closestSafePhoneBlock(element.closest("a, button, p, li, div") || element));
+            hidePhoneRowFromNumberElement(element);
           });
 
-          Array.prototype.slice.call(document.querySelectorAll("p, span, div, li, h1, h2, h3, h4, h5, h6")).forEach(function (element) {
+          Array.prototype.slice.call(document.querySelectorAll("p, span, div, li, h1, h2, h3, h4, h5, h6" )).forEach(function (element) {
             var text = normalizeLower(element.textContent);
             if (text === "phone" || text === "phone:") {
               var current = element;
               var steps = 0;
-              while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 5) {
+              while (current && current.parentElement && current.parentElement !== document.body && current.parentElement.id !== "root" && steps < 7) {
                 current = current.parentElement;
-                if (phoneRegex.test(normalizeText(current.textContent)) && normalizeText(current.textContent).length < 240) {
+                var currentText = normalizeText(current.textContent);
+                if (phoneRegex.test(currentText) && currentText.length < 320) {
                   hideNode(current);
                   break;
                 }
@@ -266,13 +280,27 @@
           hidePhoneContent();
         }
 
+        function scheduleCleanup() {
+          if (cleanupTimer) window.clearTimeout(cleanupTimer);
+          cleanupTimer = window.setTimeout(applySiteFixes, 80);
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
           applySiteFixes();
           setTimeout(applySiteFixes, 300);
           setTimeout(applySiteFixes, 1000);
           setTimeout(applySiteFixes, 2000);
+          setTimeout(applySiteFixes, 4000);
+
+          if (window.MutationObserver) {
+            var observer = new MutationObserver(scheduleCleanup);
+            observer.observe(document.getElementById("root") || document.body, { childList: true, subtree: true });
+          }
         });
         window.addEventListener("load", applySiteFixes);
+        window.addEventListener("hashchange", applySiteFixes);
+        window.addEventListener("popstate", applySiteFixes);
+        document.addEventListener("click", function () { setTimeout(applySiteFixes, 150); });
       })();
     </script>
   </body>
