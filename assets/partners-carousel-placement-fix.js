@@ -1,6 +1,7 @@
 (() => {
   let moveTimer = null;
   let observerStarted = false;
+  let suppressUntil = 0;
 
   function cleanText(value) {
     return (value || "").replace(/\s+/g, " ").trim();
@@ -31,6 +32,13 @@
         margin-bottom: 0 !important;
         padding-top: clamp(2.2rem, 4vw, 3.4rem) !important;
         padding-bottom: clamp(2.2rem, 4vw, 3.4rem) !important;
+      }
+
+      #industry-partners[data-enervate-suppress-top-flash="true"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
       }
 
       #industry-partners .enervate-partners-header {
@@ -142,6 +150,19 @@
     });
   }
 
+  function suppressPossibleTopFlash(durationMs) {
+    const partners = document.getElementById("industry-partners");
+    suppressUntil = Date.now() + durationMs;
+    if (partners) partners.setAttribute("data-enervate-suppress-top-flash", "true");
+  }
+
+  function releaseSuppressionIfSafe(partners, ctaBlock) {
+    if (!partners || !ctaBlock) return;
+    if (partners.nextElementSibling === ctaBlock && Date.now() >= suppressUntil) {
+      partners.removeAttribute("data-enervate-suppress-top-flash");
+    }
+  }
+
   function movePartnersSection() {
     addPlacementStyles();
 
@@ -155,6 +176,7 @@
     }
 
     reduceReadyHeadingSize(ctaBlock);
+    releaseSuppressionIfSafe(partners, ctaBlock);
     return true;
   }
 
@@ -162,12 +184,12 @@
     if (moveTimer) window.clearTimeout(moveTimer);
     moveTimer = window.setTimeout(() => {
       movePartnersSection();
-    }, 120);
+    }, 80);
   }
 
   function runRepeatedly() {
     movePartnersSection();
-    [250, 700, 1300, 2400, 4000, 6500, 9000].forEach((delay) => {
+    [150, 350, 650, 900, 1300, 2400, 4000, 6500, 9000].forEach((delay) => {
       window.setTimeout(movePartnersSection, delay);
     });
   }
@@ -179,6 +201,17 @@
     const target = document.getElementById("root") || document.body;
     const observer = new MutationObserver(scheduleMove);
     observer.observe(target, { childList: true, subtree: true });
+  }
+
+  function handleClickBeforeLegacyScriptRuns() {
+    suppressPossibleTopFlash(760);
+    window.setTimeout(movePartnersSection, 610);
+    window.setTimeout(movePartnersSection, 660);
+    window.setTimeout(movePartnersSection, 740);
+    window.setTimeout(() => {
+      suppressUntil = 0;
+      movePartnersSection();
+    }, 820);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -193,5 +226,5 @@
 
   window.addEventListener("hashchange", runRepeatedly);
   window.addEventListener("popstate", runRepeatedly);
-  document.addEventListener("click", () => window.setTimeout(runRepeatedly, 500));
+  document.addEventListener("click", handleClickBeforeLegacyScriptRuns, true);
 })();
