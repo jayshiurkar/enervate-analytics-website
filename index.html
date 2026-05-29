@@ -107,9 +107,12 @@
         var brandName = "Enervate Analytics";
         var brandWords = ["Enervate", "Analytics"];
         var contactEmail = "services@enervateanalytics.ca";
+        var hydrogenServiceTitle = "Hydrogen Feasibility, Safety, and Permitting Support";
+        var hydrogenServiceImage = "/assets/hydrogen-system-support-diagram.svg";
         var serviceImageTitles = [
           "Climate Risk and Adaptation Feasibility Study",
-          "Public Safety Site Risk Assessment and Land-Use Advisory"
+          "Public Safety Site Risk Assessment and Land-Use Advisory",
+          hydrogenServiceTitle
         ];
         var phoneRegex = /(?:\+?\s*1\D*)?780\D*885\D*4862/;
 
@@ -204,6 +207,29 @@
             steps += 1;
           }
           return null;
+        }
+
+        function replaceHydrogenServiceImage() {
+          var searchableElements = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a"));
+          searchableElements.forEach(function (element) {
+            if (normalizeText(element.textContent) !== hydrogenServiceTitle) return;
+            var card = findServiceCard(element, hydrogenServiceTitle);
+            if (!card) return;
+
+            var images = Array.prototype.slice.call(card.querySelectorAll("img"));
+            if (images.length) {
+              images.forEach(function (image) {
+                image.src = hydrogenServiceImage;
+                image.alt = "Hydrogen system area and dispenser area schematic";
+                forceImageContain(image);
+              });
+            }
+
+            Array.prototype.slice.call(card.querySelectorAll("[style*='background-image']")).forEach(function (backgroundElement) {
+              backgroundElement.style.setProperty("background-image", "url('" + hydrogenServiceImage + "')", "important");
+              forceBackgroundContain(backgroundElement);
+            });
+          });
         }
 
         function fixServiceImageCropping() {
@@ -365,6 +391,7 @@
 
         function applySiteFixes() {
           improveLogoVisibility();
+          replaceHydrogenServiceImage();
           fixServiceImageCropping();
           hidePublicationContent();
           addContactEmail();
