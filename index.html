@@ -9,7 +9,6 @@
     <meta property="og:title" content="Enervate Analytics | Engineering Consulting" />
     <meta property="og:description" content="Evidence-based engineering consulting for risk, safety, and energy systems." />
     <meta property="og:type" content="website" />
-
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="/assets/enervate-logo.png" />
     <style id="enervate-site-overrides">
@@ -38,13 +37,6 @@
       .enervate-service-image-frame {
         background-color: #ffffff !important;
         overflow: hidden !important;
-      }
-
-      .enervate-service-background-contain {
-        background-size: contain !important;
-        background-position: center center !important;
-        background-repeat: no-repeat !important;
-        background-color: #ffffff !important;
       }
 
       .enervate-hide-content,
@@ -102,19 +94,17 @@
 
   <body>
     <div id="root"></div>
+
     <script>
       (function () {
         var brandName = "Enervate Analytics";
         var brandWords = ["Enervate", "Analytics"];
         var contactEmail = "services@enervateanalytics.ca";
-        var hydrogenServiceTitle = "Hydrogen Feasibility, Safety, and Permitting Support";
-        var hydrogenServiceImage = "/assets/hydrogen-system-support-diagram.svg";
-        var serviceImageTitles = [
-          "Climate Risk and Adaptation Feasibility Study",
-          "Public Safety Site Risk Assessment and Land-Use Advisory",
-          hydrogenServiceTitle
-        ];
         var phoneRegex = /(?:\+?\s*1\D*)?780\D*885\D*4862/;
+        var containImageTitles = [
+          "Climate Risk and Adaptation Feasibility Study",
+          "Public Safety Site Risk Assessment and Land-Use Advisory"
+        ];
 
         function normalizeText(value) {
           return (value || "").replace(/\s+/g, " ").trim();
@@ -190,14 +180,6 @@
           }
         }
 
-        function forceBackgroundContain(element) {
-          element.classList.add("enervate-service-background-contain");
-          element.style.setProperty("background-size", "contain", "important");
-          element.style.setProperty("background-position", "center center", "important");
-          element.style.setProperty("background-repeat", "no-repeat", "important");
-          element.style.setProperty("background-color", "#ffffff", "important");
-        }
-
         function findServiceCard(titleElement, title) {
           var current = titleElement;
           var steps = 0;
@@ -209,38 +191,14 @@
           return null;
         }
 
-        function replaceHydrogenServiceImage() {
+        function fixSelectedServiceImageCropping() {
           var searchableElements = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a"));
-          searchableElements.forEach(function (element) {
-            if (normalizeText(element.textContent) !== hydrogenServiceTitle) return;
-            var card = findServiceCard(element, hydrogenServiceTitle);
-            if (!card) return;
-
-            var images = Array.prototype.slice.call(card.querySelectorAll("img"));
-            if (images.length) {
-              images.forEach(function (image) {
-                image.src = hydrogenServiceImage;
-                image.alt = "Hydrogen system area and dispenser area schematic";
-                forceImageContain(image);
-              });
-            }
-
-            Array.prototype.slice.call(card.querySelectorAll("[style*='background-image']")).forEach(function (backgroundElement) {
-              backgroundElement.style.setProperty("background-image", "url('" + hydrogenServiceImage + "')", "important");
-              forceBackgroundContain(backgroundElement);
-            });
-          });
-        }
-
-        function fixServiceImageCropping() {
-          var searchableElements = Array.prototype.slice.call(document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, div, a"));
-          serviceImageTitles.forEach(function (title) {
+          containImageTitles.forEach(function (title) {
             searchableElements.forEach(function (element) {
               if (normalizeText(element.textContent) !== title) return;
               var card = findServiceCard(element, title);
               if (!card) return;
               Array.prototype.slice.call(card.querySelectorAll("img")).forEach(forceImageContain);
-              Array.prototype.slice.call(card.querySelectorAll("[style*='background-image']")).forEach(forceBackgroundContain);
             });
           });
         }
@@ -313,18 +271,6 @@
               steps += 1;
             }
           });
-
-          if (document.body && window.NodeFilter) {
-            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-            var node;
-            while ((node = walker.nextNode())) {
-              if (phoneRegex.test(node.nodeValue || "")) {
-                var parent = node.parentElement;
-                if (parent && normalizeText(parent.textContent).length < 170) hideNode(findSmallPhoneBlock(parent));
-                node.nodeValue = (node.nodeValue || "").replace(phoneRegex, "").replace(/\s{2,}/g, " ").trim();
-              }
-            }
-          }
         }
 
         function createEmailBlock() {
@@ -391,8 +337,7 @@
 
         function applySiteFixes() {
           improveLogoVisibility();
-          replaceHydrogenServiceImage();
-          fixServiceImageCropping();
+          fixSelectedServiceImageCropping();
           hidePublicationContent();
           addContactEmail();
           hidePhoneContent();
@@ -411,5 +356,6 @@
         document.addEventListener("click", function () { setTimeout(applySiteFixes, 500); });
       })();
     </script>
+    <script src="/assets/partners-carousel.js" defer></script>
   </body>
 </html>
