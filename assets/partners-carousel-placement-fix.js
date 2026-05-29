@@ -1,7 +1,6 @@
 (() => {
   let moveTimer = null;
   let observerStarted = false;
-  let suppressUntil = 0;
 
   function cleanText(value) {
     return (value || "").replace(/\s+/g, " ").trim();
@@ -27,18 +26,18 @@
     const style = document.createElement("style");
     style.id = "enervate-partners-bottom-placement-css";
     style.textContent = `
+      #industry-partners:not([data-enervate-bottom-ready="true"]) {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+
       #industry-partners {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
         padding-top: clamp(2.2rem, 4vw, 3.4rem) !important;
         padding-bottom: clamp(2.2rem, 4vw, 3.4rem) !important;
-      }
-
-      #industry-partners[data-enervate-suppress-top-flash="true"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
       }
 
       #industry-partners .enervate-partners-header {
@@ -150,19 +149,6 @@
     });
   }
 
-  function suppressPossibleTopFlash(durationMs) {
-    const partners = document.getElementById("industry-partners");
-    suppressUntil = Date.now() + durationMs;
-    if (partners) partners.setAttribute("data-enervate-suppress-top-flash", "true");
-  }
-
-  function releaseSuppressionIfSafe(partners, ctaBlock) {
-    if (!partners || !ctaBlock) return;
-    if (partners.nextElementSibling === ctaBlock && Date.now() >= suppressUntil) {
-      partners.removeAttribute("data-enervate-suppress-top-flash");
-    }
-  }
-
   function movePartnersSection() {
     addPlacementStyles();
 
@@ -171,20 +157,21 @@
 
     if (!partners || !ctaBlock || !ctaBlock.parentElement) return false;
 
+    partners.removeAttribute("data-enervate-suppress-top-flash");
+
     if (partners.nextElementSibling !== ctaBlock) {
+      partners.removeAttribute("data-enervate-bottom-ready");
       ctaBlock.parentElement.insertBefore(partners, ctaBlock);
     }
 
     reduceReadyHeadingSize(ctaBlock);
-    releaseSuppressionIfSafe(partners, ctaBlock);
+    partners.setAttribute("data-enervate-bottom-ready", "true");
     return true;
   }
 
   function scheduleMove() {
     if (moveTimer) window.clearTimeout(moveTimer);
-    moveTimer = window.setTimeout(() => {
-      movePartnersSection();
-    }, 80);
+    moveTimer = window.setTimeout(movePartnersSection, 80);
   }
 
   function runRepeatedly() {
@@ -203,17 +190,6 @@
     observer.observe(target, { childList: true, subtree: true });
   }
 
-  function handleClickBeforeLegacyScriptRuns() {
-    suppressPossibleTopFlash(760);
-    window.setTimeout(movePartnersSection, 610);
-    window.setTimeout(movePartnersSection, 660);
-    window.setTimeout(movePartnersSection, 740);
-    window.setTimeout(() => {
-      suppressUntil = 0;
-      movePartnersSection();
-    }, 820);
-  }
-
   document.addEventListener("DOMContentLoaded", () => {
     runRepeatedly();
     startObserver();
@@ -226,5 +202,4 @@
 
   window.addEventListener("hashchange", runRepeatedly);
   window.addEventListener("popstate", runRepeatedly);
-  document.addEventListener("click", handleClickBeforeLegacyScriptRuns, true);
 })();
