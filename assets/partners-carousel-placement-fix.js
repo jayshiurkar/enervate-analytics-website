@@ -1,6 +1,7 @@
 (() => {
-  let moveTimer = null;
   let observerStarted = false;
+  let partnersData = null;
+  let loadingPartners = null;
 
   function cleanText(value) {
     return (value || "").replace(/\s+/g, " ").trim();
@@ -20,11 +21,11 @@
     return rect.width > 0 && rect.height > 0;
   }
 
-  function addPlacementStyles() {
-    if (document.getElementById("enervate-partners-bottom-placement-css")) return;
+  function addStyles() {
+    if (document.getElementById("enervate-partners-final-css")) return;
 
     const style = document.createElement("style");
-    style.id = "enervate-partners-bottom-placement-css";
+    style.id = "enervate-partners-final-css";
     style.textContent = `
       #industry-partners:not([data-enervate-bottom-ready="true"]) {
         display: none !important;
@@ -34,33 +35,83 @@
       }
 
       #industry-partners {
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        padding-top: clamp(2.2rem, 4vw, 3.4rem) !important;
-        padding-bottom: clamp(2.2rem, 4vw, 3.4rem) !important;
+        background: radial-gradient(circle at 15% 0%, rgba(48,124,182,.18), transparent 35%), linear-gradient(180deg, #0b1118 0%, #0a1017 100%) !important;
+        border-top: 1px solid rgba(120,160,210,.16) !important;
+        border-bottom: 1px solid rgba(120,160,210,.16) !important;
+        padding: clamp(2.2rem, 4vw, 3.4rem) 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+
+      #industry-partners .enervate-partners-inner {
+        width: min(1180px, calc(100% - 2rem)) !important;
+        margin: 0 auto !important;
       }
 
       #industry-partners .enervate-partners-header {
+        text-align: center !important;
         margin-bottom: 1.4rem !important;
       }
 
+      #industry-partners .enervate-partners-eyebrow {
+        color: #64a8ff !important;
+        font-size: .78rem !important;
+        letter-spacing: .18em !important;
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+        margin-bottom: .65rem !important;
+      }
+
       #industry-partners .enervate-partners-title {
+        color: #fff !important;
         font-size: clamp(1.25rem, 2vw, 1.75rem) !important;
+        line-height: 1.2 !important;
+        font-weight: 800 !important;
+        margin: 0 !important;
       }
 
       #industry-partners .enervate-partners-subtitle {
-        font-size: 0.92rem !important;
-        margin-top: 0.55rem !important;
+        color: rgba(220,230,245,.72) !important;
+        font-size: .92rem !important;
+        line-height: 1.6 !important;
+        margin: .55rem auto 0 !important;
+        max-width: 720px !important;
+      }
+
+      #industry-partners .enervate-partners-marquee {
+        position: relative !important;
+        overflow: hidden !important;
+        width: 100% !important;
+        padding: .25rem 0 !important;
+        -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent) !important;
+        mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent) !important;
+      }
+
+      #industry-partners .enervate-partners-track {
+        display: flex !important;
+        align-items: center !important;
+        gap: 1rem !important;
+        width: max-content !important;
+        animation: enervatePartnersMarqueeFinal 62s linear infinite !important;
+        will-change: transform !important;
       }
 
       #industry-partners .enervate-partner-card {
+        flex: 0 0 auto !important;
         width: clamp(145px, 15vw, 205px) !important;
         height: 86px !important;
-        padding: 0.75rem 1rem !important;
+        padding: .75rem 1rem !important;
         border-radius: 14px !important;
+        background: rgba(255,255,255,.96) !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
+        box-shadow: 0 16px 34px rgba(0,0,0,.22) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
 
       #industry-partners .enervate-partner-card img {
+        display: block !important;
         max-height: 52px !important;
         max-width: 100% !important;
         width: auto !important;
@@ -68,19 +119,70 @@
         object-fit: contain !important;
       }
 
+      #industry-partners .enervate-partners-marquee:hover .enervate-partners-track {
+        animation-play-state: paused !important;
+      }
+
+      @keyframes enervatePartnersMarqueeFinal {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+
       @media (max-width: 768px) {
         #industry-partners .enervate-partner-card {
           width: 145px !important;
           height: 76px !important;
-          padding: 0.65rem 0.85rem !important;
+          padding: .65rem .85rem !important;
         }
 
         #industry-partners .enervate-partner-card img {
           max-height: 44px !important;
         }
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        #industry-partners .enervate-partners-track {
+          animation: none !important;
+          flex-wrap: wrap !important;
+          justify-content: center !important;
+          width: 100% !important;
+        }
+
+        #industry-partners .enervate-partners-marquee {
+          -webkit-mask-image: none !important;
+          mask-image: none !important;
+        }
+      }
     `;
     document.head.appendChild(style);
+  }
+
+  function parsePartnersScript(scriptText) {
+    const match = scriptText.match(/const\s+p\s*=\s*(\[[\s\S]*?\]);\s*const\s+n\s*=/);
+    if (!match) return null;
+    try {
+      const parsed = JSON.parse(match[1]);
+      return Array.isArray(parsed) && parsed.length ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function loadPartnersData() {
+    if (partnersData) return Promise.resolve(partnersData);
+    if (loadingPartners) return loadingPartners;
+
+    loadingPartners = fetch("/assets/partners-carousel.js", { cache: "force-cache" })
+      .then((response) => response.text())
+      .then((text) => {
+        const parsed = parsePartnersScript(text);
+        if (!parsed) throw new Error("Unable to parse partner logos");
+        partnersData = parsed;
+        return partnersData;
+      })
+      .catch(() => null);
+
+    return loadingPartners;
   }
 
   function findBottomCtaBlock() {
@@ -139,6 +241,44 @@
     return unique[0];
   }
 
+  function createPartnersSection(partners) {
+    const section = document.createElement("section");
+    section.id = "industry-partners";
+    section.className = "enervate-partners-section";
+    section.setAttribute("aria-labelledby", "enervate-partners-heading");
+
+    section.innerHTML = `
+      <div class="enervate-partners-inner">
+        <div class="enervate-partners-header">
+          <div class="enervate-partners-eyebrow">Industry Partners / Collaborators</div>
+          <h2 id="enervate-partners-heading" class="enervate-partners-title">Working alongside public-sector and industry collaborators</h2>
+          <p class="enervate-partners-subtitle">Supporting practical decisions across energy, infrastructure, risk, safety, and regional development.</p>
+        </div>
+        <div class="enervate-partners-marquee" aria-label="Industry partner logos">
+          <div class="enervate-partners-track"></div>
+        </div>
+      </div>
+    `;
+
+    const track = section.querySelector(".enervate-partners-track");
+    partners.concat(partners).forEach((partner, index) => {
+      const card = document.createElement("div");
+      card.className = "enervate-partner-card";
+
+      const img = document.createElement("img");
+      img.src = partner.s;
+      img.alt = index < partners.length ? partner.n : "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      if (index >= partners.length) img.setAttribute("aria-hidden", "true");
+
+      card.appendChild(img);
+      track.appendChild(card);
+    });
+
+    return section;
+  }
+
   function reduceReadyHeadingSize(ctaBlock) {
     if (!ctaBlock) return;
     Array.prototype.slice.call(ctaBlock.querySelectorAll("h1, h2, h3")).forEach((heading) => {
@@ -149,36 +289,49 @@
     });
   }
 
-  function movePartnersSection() {
-    addPlacementStyles();
+  function removeDuplicatePartnerSections(keep) {
+    Array.prototype.slice.call(document.querySelectorAll("#industry-partners")).forEach((section) => {
+      if (section !== keep) section.remove();
+    });
+  }
 
-    const partners = document.getElementById("industry-partners");
+  function placePartnersSection(partners) {
+    addStyles();
+
     const ctaBlock = findBottomCtaBlock();
+    if (!ctaBlock || !ctaBlock.parentElement) return false;
 
-    if (!partners || !ctaBlock || !ctaBlock.parentElement) return false;
+    let section = document.getElementById("industry-partners");
+    if (!section) section = createPartnersSection(partners);
 
-    partners.removeAttribute("data-enervate-suppress-top-flash");
-
-    if (partners.nextElementSibling !== ctaBlock) {
-      partners.removeAttribute("data-enervate-bottom-ready");
-      ctaBlock.parentElement.insertBefore(partners, ctaBlock);
+    section.removeAttribute("data-enervate-bottom-ready");
+    if (section.nextElementSibling !== ctaBlock) {
+      ctaBlock.parentElement.insertBefore(section, ctaBlock);
     }
 
+    removeDuplicatePartnerSections(section);
     reduceReadyHeadingSize(ctaBlock);
-    partners.setAttribute("data-enervate-bottom-ready", "true");
+    section.setAttribute("data-enervate-bottom-ready", "true");
     return true;
   }
 
-  function scheduleMove() {
-    if (moveTimer) window.clearTimeout(moveTimer);
-    moveTimer = window.setTimeout(movePartnersSection, 80);
+  function run() {
+    loadPartnersData().then((partners) => {
+      if (!partners) return;
+      placePartnersSection(partners);
+    });
   }
 
   function runRepeatedly() {
-    movePartnersSection();
-    [150, 350, 650, 900, 1300, 2400, 4000, 6500, 9000].forEach((delay) => {
-      window.setTimeout(movePartnersSection, delay);
+    run();
+    [150, 350, 700, 1200, 2200, 4000, 6500, 9000].forEach((delay) => {
+      window.setTimeout(run, delay);
     });
+  }
+
+  function scheduleRun() {
+    if (moveTimer) window.clearTimeout(moveTimer);
+    moveTimer = window.setTimeout(run, 100);
   }
 
   function startObserver() {
@@ -186,7 +339,7 @@
     observerStarted = true;
 
     const target = document.getElementById("root") || document.body;
-    const observer = new MutationObserver(scheduleMove);
+    const observer = new MutationObserver(scheduleRun);
     observer.observe(target, { childList: true, subtree: true });
   }
 
