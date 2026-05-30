@@ -250,9 +250,7 @@
     section.innerHTML = `
       <div class="enervate-partners-inner">
         <div class="enervate-partners-header">
-          <div class="enervate-partners-eyebrow">Industry Partners / Collaborators</div>
-          <h2 id="enervate-partners-heading" class="enervate-partners-title">Working alongside public-sector and industry collaborators</h2>
-          <p class="enervate-partners-subtitle">Supporting practical decisions across energy, infrastructure, risk, safety, and regional development.</p>
+          <h2 id="enervate-partners-heading" class="enervate-partners-title">Working across Alberta</h2>
         </div>
         <div class="enervate-partners-marquee" aria-label="Industry partner logos">
           <div class="enervate-partners-track"></div>
